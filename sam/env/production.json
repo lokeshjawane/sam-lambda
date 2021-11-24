@@ -1,0 +1,11 @@
+{"cf_params" : [
+		{"ParameterKey": "Runtime","ParameterValue": "go1.x"},
+		{"ParameterKey": "SubnetIds","ParameterValue": "subnet-xxxxxx,subnet-adff55g5"},
+		{"ParameterKey": "S3BucketName","ParameterValue": "test-lambda-deploy"},
+		{"ParameterKey": "VPC","ParameterValue": "vpc-sfg555455"},
+		{"ParameterKey": "LambdaName","ParameterValue": "test-lambda"},
+		{"ParameterKey": "Handler","Para  meterValue": "main"},
+		{"ParameterKey": "AppFolder","ParameterValue": "function_go"}
+],
+"lambda_env_vars" :{"enabled": "testing"}
+}

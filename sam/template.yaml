@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'testing'
+
+Globals:
+  Function:
+    Timeout: 3
+Parameters:
+  AppFolder:
+    Type: String
+    Default: function_go
+
+  SubnetIds:
+    Type: String
+    Description: comma separated of subnets string
+
+  Memory:
+    Type: Number
+    Default: 128
+    Description: Memory required for the lambda execution
+
+  Runtime:
+    Type: String
+    Default: go1.x
+
+  Handler:
+    Type: String
+    Default: app.lambda_handler
+
+  LambdaName:
+    Type: String
+    Description: Name you lambda function
+
+  VPC:
+    Type: String
+    Description: Vpc ID of the subnets
+
+  Policies:
+    Type: String
+    Description: comma separated of PolicyName string
+    Default: ""
+
+Resources:
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: !Ref AppFolder
+      Handler: !Ref Handler
+      Runtime: !Ref Runtime
+      MemorySize: !Ref Memory
+      FunctionName: !Ref LambdaName
+      VpcConfig:
+        SubnetIds: !Split [ ",", !Ref SubnetIds ]
+        SecurityGroupIds:
+          - !GetAtt securitygroup.GroupId
+      Policies: !Ref Policies
+
+
+  securitygroup:
+     Type: AWS::EC2::SecurityGroup
+     Properties:
+        GroupDescription: SG to test ping
+        VpcId: !Ref VPC
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: "-1"
+Outputs:
+  LambdaFunction:
+    Description: Hello World Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - LambdaFunction
+      - Arn
+

@@ -1,0 +1,45 @@
+
+func deploy() {
+   #Install dependent packages, OS ubuntu
+   cd /tmp
+   apt-get update && apt-get install libc6 groff less jq -y
+   curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip -o awscliv2.zip
+   unzip awscliv2.zip
+   ./aws/install
+   wget https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
+   unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
+   ./sam-installation/install
+   sam --version
+   cd -
+
+   #Get the AWS creds by assuming role
+   output=$(aws sts assume-role --role-arn <aws iam role arn> --duration-seconds 900 --role-session-name AWSCLI-Session)
+   export AWS_ACCESS_KEY_ID=$(echo $output | jq -r .Credentials.AccessKeyId)
+   export AWS_SECRET_ACCESS_KEY=$(echo $output | jq -r .Credentials.SecretAccessKey)
+   export AWS_SESSION_TOKEN=$(echo $output | jq -r .Credentials.SessionToken)
+
+   #Start Sam activity
+   export override_params=$(cat sam/env/$env.json  | jq '.cf_params[]| "ParameterKey=" + .ParameterKey + ",ParameterValue=" + .ParameterValue' | sed 's/"//g' | tr '\n' ' ')
+   export envs=$(cat sam/env/$env.json  | jq '.lambda_env_vars')
+   cp sam/template.yaml template.yaml
+   sam build  -t template.yaml --parameter-overrides $override_params
+   sam package --output-template-file .aws-sam/packaged.yaml  --region us-east-1  --s3-bucket  <s3-bucket-name>  --s3-prefix <app-name>/$env
+   mv .aws-sam/packaged.yaml .aws-sam/packaged-orig.yaml
+   cat .aws-sam/packaged-orig.yaml | jq '.Resources.LambdaFunction.Properties += {Environment: {Variables: '"$envs"'}}' > .aws-sam/packaged.yaml
+   sam deploy -t .aws-sam/packaged.yaml --region $region  --stack-name "<app-name>-lambda" --parameter-overrides $override_params --capabilities CAPABILITY_IAM
+}
+
+
+if $branch == "staging"
+    role_arn = "arn:aws:iam::2892507514444444:role/staging-role
+    env = staging
+    region = us-east-1
+    deploy()
+end
+
+if $branch == "master"
+    role_arn = "arn:aws:iam::289250751555544:role/prod-role
+    env = staging
+    region = us-east-1
+    deploy()
+end
